@@ -9,27 +9,42 @@
         import * as transformers from './transformers.min.js';
 
         async function loadModel() {
-            
+            // Check if Whisper is properly loaded
+            if (!transformers.WHISPER) {
+                console.error("Whisper is not available in the transformers module.");
+                return;
+            }
+
             // Configure ONNX Runtime Web to use the local WASM files in the same directory as the HTML file
-            await transformers.WHISPER.setWasmPaths({
-                ortWasm: `ort-wasm.wasm`,                // Main WASM file in the same directory
-                ortWasmSimd: `ort-wasm-simd.wasm`,      // SIMD-optimized WASM file (Optional)
-                ortWasmSimdThreaded: `ort-wasm-simd-threaded.wasm`,  // SIMD + Threaded (Optional)
-                ortWasmThreaded: `ort-wasm-threaded.wasm`  // Threaded WASM file (Optional)
-            });
+            try {
+                await transformers.WHISPER.setWasmPaths({
+                    ortWasm: `ort-wasm.wasm`,                // Main WASM file in the same directory
+                    ortWasmSimd: `ort-wasm-simd.wasm`,      // SIMD-optimized WASM file (Optional)
+                    ortWasmSimdThreaded: `ort-wasm-simd-threaded.wasm`,  // SIMD + Threaded (Optional)
+                    ortWasmThreaded: `ort-wasm-threaded.wasm`  // Threaded WASM file (Optional)
+                });
+                console.log("WASM paths set successfully!");
+            } catch (error) {
+                console.error("Error setting WASM paths:", error);
+                return;
+            }
 
             // Load the Whisper model by stitching together the 7 model parts
             const modelParts = [];
-            for (let i = 1; i <= 7; i++) {
-                modelParts.push(await loadModelPart(`model/pytorch_model.n${i}`));
+            try {
+                for (let i = 1; i <= 7; i++) {
+                    modelParts.push(await loadModelPart(`model/pytorch_model.n${i}`));
+                }
+
+                const modelBuffer = new Uint8Array(modelParts.reduce((acc, part) => acc.concat(Array.from(part)), []));
+                await transformers.WHISPER.loadModel({
+                    modelBuffer: modelBuffer
+                });
+
+                console.log("Whisper model loaded successfully!");
+            } catch (error) {
+                console.error("Error loading model parts:", error);
             }
-
-            const modelBuffer = new Uint8Array(modelParts.reduce((acc, part) => acc.concat(Array.from(part)), []));
-            await transformers.WHISPER.loadModel({
-                modelBuffer: modelBuffer
-            });
-
-            console.log("Whisper model loaded successfully!");
         }
 
         // Load a single model part (n1, n2, ..., n7)
@@ -59,11 +74,15 @@
                 const audioBuffer = event.target.result;
 
                 // Perform transcription using Whisper
-                const transcription = await transformers.WHISPER.transcribe(audioBuffer, { language: language });
+                try {
+                    const transcription = await transformers.WHISPER.transcribe(audioBuffer, { language: language });
 
-                // Display the transcribed text
-                const resultElement = document.getElementById("result");
-                resultElement.textContent = `Transcription: ${transcription.text}`;
+                    // Display the transcribed text
+                    const resultElement = document.getElementById("result");
+                    resultElement.textContent = `Transcription: ${transcription.text}`;
+                } catch (error) {
+                    console.error("Error during transcription:", error);
+                }
             };
 
             reader.readAsArrayBuffer(audioFile);  // Read the file as an ArrayBuffer
