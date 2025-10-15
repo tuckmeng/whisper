@@ -9,14 +9,13 @@
         import * as transformers from './transformers.min.js';
 
         async function loadModel() {
-            const wasmPath = './';  // WASM files are in the same directory as the HTML file
             
             // Configure ONNX Runtime Web to use the local WASM files in the same directory as the HTML file
             await transformers.WHISPER.setWasmPaths({
-                ortWasm: `${wasmPath}ort-wasm.wasm`,                // Main WASM file in the same directory
-                ortWasmSimd: `${wasmPath}ort-wasm-simd.wasm`,      // SIMD-optimized WASM file (Optional)
-                ortWasmSimdThreaded: `${wasmPath}ort-wasm-simd-threaded.wasm`,  // SIMD + Threaded (Optional)
-                ortWasmThreaded: `${wasmPath}ort-wasm-threaded.wasm`  // Threaded WASM file (Optional)
+                ortWasm: `ort-wasm.wasm`,                // Main WASM file in the same directory
+                ortWasmSimd: `ort-wasm-simd.wasm`,      // SIMD-optimized WASM file (Optional)
+                ortWasmSimdThreaded: `ort-wasm-simd-threaded.wasm`,  // SIMD + Threaded (Optional)
+                ortWasmThreaded: `ort-wasm-threaded.wasm`  // Threaded WASM file (Optional)
             });
 
             // Load the Whisper model by stitching together the 7 model parts
