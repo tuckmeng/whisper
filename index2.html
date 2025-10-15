@@ -39,7 +39,7 @@
       
       // Load each of the 7 model chunks
       for (let i = 1; i <= 7; i++) {
-        modelFiles.push(fetch(`model/pytorch.model.${i}`).then(response => response.arrayBuffer()));
+        modelFiles.push(fetch(`model/pytorch_model.${i}`).then(response => response.arrayBuffer()));
       }
 
       // Wait for all model chunks to be loaded
