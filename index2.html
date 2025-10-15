@@ -1,8 +1,100 @@
-let totalLength = modelBuffers.reduce((acc, buffer) => acc + buffer.byteLength, 0);
-let combinedBuffer = new Uint8Array(totalLength);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whisper Transcriber</title>
+    <script src="transformers.min.js"></script> <!-- Ensure transformers.min.js is in the same directory as this HTML file -->
+    <script>
+        async function loadModel() {
+            const wasmPath = '';  // WASM files are in the same directory as the HTML file
+            
+            // Configure ONNX Runtime Web to use the local WASM files in the same directory as the HTML file
+            await transformers.WHISPER.setWasmPaths({
+                ortWasm: `${wasmPath}ort-wasm.wasm`,                // Main WASM file in the same directory
+                ortWasmSimd: `${wasmPath}ort-wasm-simd.wasm`,      // SIMD-optimized WASM file (Optional)
+                ortWasmSimdThreaded: `${wasmPath}ort-wasm-simd-threaded.wasm`,  // SIMD + Threaded (Optional)
+                ortWasmThreaded: `${wasmPath}ort-wasm-threaded.wasm`  // Threaded WASM file (Optional)
+            });
 
-let offset = 0;
-for (let buffer of modelBuffers) {
-  combinedBuffer.set(new Uint8Array(buffer), offset);
-  offset += buffer.byteLength;
-}
+            // Load the Whisper model by stitching together the 7 model parts
+            const modelParts = [];
+            for (let i = 1; i <= 7; i++) {
+                modelParts.push(await loadModelPart(`model/pytorch_model.${i}`));
+            }
+
+            const modelBuffer = new Uint8Array(modelParts.reduce((acc, part) => acc.concat(Array.from(part)), []));
+            await transformers.WHISPER.loadModel({
+                modelBuffer: modelBuffer
+            });
+
+            console.log("Whisper model loaded successfully!");
+        }
+
+        // Load a single model part (n1, n2, ..., n7)
+        async function loadModelPart(filePath) {
+            const response = await fetch(filePath);
+            if (!response.ok) {
+                throw new Error(`Failed to load model part: ${filePath}`);
+            }
+            return await response.arrayBuffer();  // Return the binary data of the model part
+        }
+
+        async function transcribe() {
+            const fileInput = document.getElementById("audio-file");
+            const languageSelector = document.getElementById("language-selector");
+            const language = languageSelector.value;
+
+            // Ensure a file is selected
+            if (!fileInput.files.length) {
+                alert("Please select an audio file.");
+                return;
+            }
+
+            const audioFile = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async function(event) {
+                const audioBuffer = event.target.result;
+
+                // Perform transcription using Whisper
+                const transcription = await transformers.WHISPER.transcribe(audioBuffer, { language: language });
+
+                // Display the transcribed text
+                const resultElement = document.getElementById("result");
+                resultElement.textContent = `Transcription: ${transcription.text}`;
+            };
+
+            reader.readAsArrayBuffer(audioFile);  // Read the file as an ArrayBuffer
+        }
+
+        // Initialize the model once the page is loaded
+        window.onload = async function() {
+            await loadModel();  // Load the Whisper model on page load
+        };
+    </script>
+</head>
+<body>
+    <div style="max-width: 800px; margin: auto; text-align: center;">
+        <h1>Whisper Audio Transcriber</h1>
+        <p>Select a language and upload an audio file to transcribe it.</p>
+        
+        <!-- Language selection dropdown -->
+        <label for="language-selector">Choose Language: </label>
+        <select id="language-selector">
+            <option value="en">English</option>
+            <option value="zh">Chinese (Simplified)</option>
+        </select>
+        <br><br>
+
+        <!-- Audio file input -->
+        <input type="file" id="audio-file" accept="audio/*">
+        <br><br>
+
+        <!-- Button to start transcription -->
+        <button onclick="transcribe()">Transcribe Audio</button>
+
+        <div id="result" style="margin-top: 20px; font-size: 1.2em; font-weight: bold;"></div>
+    </div>
+</body>
+</html>
