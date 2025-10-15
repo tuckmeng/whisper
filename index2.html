@@ -4,8 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Whisper Transcriber</title>
-    <script src="transformers.min.js"></script> <!-- Ensure transformers.min.js is in the same directory as this HTML file -->
-    <script>
+    <script type="module">
+        // Import the transformers library (this assumes transformers.min.js is in the same directory)
+        import * as transformers from './transformers.min.js';
+
         async function loadModel() {
             const wasmPath = '';  // WASM files are in the same directory as the HTML file
             
@@ -20,7 +22,7 @@
             // Load the Whisper model by stitching together the 7 model parts
             const modelParts = [];
             for (let i = 1; i <= 7; i++) {
-                modelParts.push(await loadModelPart(`model/pytorch_model.${i}`));
+                modelParts.push(await loadModelPart(`model/pytorch_model.n${i}`));
             }
 
             const modelBuffer = new Uint8Array(modelParts.reduce((acc, part) => acc.concat(Array.from(part)), []));
