@@ -4,7 +4,8 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Whisper Transcriber</title>
-  <!-- Reference the local transformers.min.js file in the same directory -->
+  
+  <!-- Load transformers.min.js as an ES module -->
   <script type="module" src="transformers.min.js"></script>
 </head>
 <body>
@@ -29,6 +30,9 @@
   <pre id="transcription"></pre>
 
   <script>
+    // Set the path for the WASM files to be the same directory as the HTML file
+    const wasmPath = './'; // Same directory as the HTML file
+
     // Function to load and combine the model files
     async function loadModel() {
       const modelFiles = [];
@@ -44,6 +48,15 @@
       // Combine all the chunks into one ArrayBuffer
       const combinedBuffer = new Uint8Array(modelBuffers.reduce((acc, buffer) => acc.concat(Array.from(new Uint8Array(buffer))), []));
       
+      // Configure ONNX Runtime for Web with WASM files (from same directory)
+      transformers.WHISPER.setWasmPaths({
+        // Path to the WASM files (same directory as index.html)
+        ortWasm: `${wasmPath}ort-wasm.wasm`,
+        ortWasmSimd: `${wasmPath}ort-wasm-simd.wasm`,
+        ortWasmSimdThreaded: `${wasmPath}ort-wasm-simd-threaded.wasm`,
+        ortWasmThreaded: `${wasmPath}ort-wasm-threaded.wasm`
+      });
+
       // Load the Whisper model from the combined buffer
       const model = await transformers.WHISPER.loadModel({
         model: new Uint8Array(combinedBuffer),
@@ -76,10 +89,14 @@
       const audioData = await audioFile.arrayBuffer();
 
       // Transcribe the audio
-      const transcription = await model.transcribe(new Uint8Array(audioData), { language });
+      try {
+        const transcription = await model.transcribe(new Uint8Array(audioData), { language });
 
-      // Display the transcription
-      document.getElementById('transcription').textContent = transcription.text;
+        // Display the transcription
+        document.getElementById('transcription').textContent = transcription.text;
+      } catch (error) {
+        document.getElementById('transcription').textContent = "Error during transcription: " + error.message;
+      }
     }
 
     // Add event listener to the button
