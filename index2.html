@@ -9,7 +9,7 @@
         import * as transformers from './transformers.min.js';
 
         async function loadModel() {
-            const wasmPath = '';  // WASM files are in the same directory as the HTML file
+            const wasmPath = './';  // WASM files are in the same directory as the HTML file
             
             // Configure ONNX Runtime Web to use the local WASM files in the same directory as the HTML file
             await transformers.WHISPER.setWasmPaths({
